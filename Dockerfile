@@ -8,6 +8,9 @@ WORKDIR /app
 COPY . /app
 
 RUN apt-get update && apt-get install -y build-essential libpoppler-cpp-dev pkg-config python-dev
+RUN apt-get -y upgrade
+RUN apt-get install -y sqlite3 libsqlite3-dev
+
 
 # install dependencies
 RUN pip install --upgrade pip

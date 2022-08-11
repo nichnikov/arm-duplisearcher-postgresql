@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+import sqlite3
 from scipy.sparse import hstack, vstack
 from collections import namedtuple
 from itertools import chain, groupby
@@ -93,35 +94,45 @@ def search_func(searched_data: {}):
 class Worker:
     """объект для оперирования MatricesList и TextsStorage"""
 
-    def __init__(self, max_shard_size: int, vocabulary_size: int):
-        self.columns = ["locale", "moduleId", "queryId", "answerId", "cluster", "pubIds"]
+    def __init__(self, max_shard_size: int, vocabulary_size: int, db_path: str):
+        self.db_path = db_path
         self.max_shard_size = max_shard_size
-        self.text_storage = TextsStorage(self.columns)
+        self.text_storage = TextsStorage(db_path)
         self.matrix_list = MatricesList(self.max_shard_size)
         self.tokenizator = TextsTokenizer()
         self.vectorizator = TextsVectorsBoW(vocabulary_size)
 
     def vectors_maker(self, data: [()]):
+        """"""
         lc, m_i, q_ids, a_i, txs, p_ids = zip(*data)
         tokens = self.tokenizator(txs)
         vectors = self.vectorizator(tokens)
         return list(zip(q_ids, vectors))
 
     def add(self, data: [()]):
+        """"""
         ids_vectors = self.vectors_maker(data)
         self.matrix_list.add(ids_vectors)
         self.text_storage.add(data)
 
-    def delete(self, ids: []):
-        self.matrix_list.delete(ids)
-        self.text_storage.delete(ids, by_column="queryId")
+    def delete(self, answers_ids: []):
+        """"""
+        searched_data = self.text_storage.search_answers(answers_ids)
+        q_ids = [x[2] for x in searched_data]
+        q_ids = list(set(q_ids))
+        self.matrix_list.delete(q_ids)
+        self.text_storage.delete(q_ids)
 
     def delete_all(self):
-        self.text_storage = TextsStorage(self.columns)
+        """"""
+        self.text_storage.delete_all()
         self.matrix_list = MatricesList(self.max_shard_size)
 
     def update(self, data: [()]):
-        lc, m_i, q_ids, a_i, txs, p_ids = zip(*data)
+        lc, m_i, q_i, a_i, txs, p_ids = zip(*data)
+        searched_data = self.text_storage.search_answers(a_i)
+        q_ids = [x[2] for x in searched_data]
+        q_ids = list(set(q_ids))
         self.delete(q_ids)
         self.add(data)
 
@@ -134,8 +145,9 @@ class Worker:
             ids_vectors = self.vectors_maker(data_by_locale[lc])
             result_tuples = self.matrix_list.search(ids_vectors, score)
             searched_ids, founded_ids, scores = zip(*result_tuples)
-            found_data_df = self.text_storage.search(founded_ids, by_column="queryId")
-            found_dicts_l = found_data_df.to_dict(orient="records")
+            found_data = self.text_storage.search(founded_ids)
+            found_dicts_l = [{"locale": x[0], "moduleId": x[1], "queryId": x[2],
+                              "answerId": x[3], "cluster": x[4], "pubIds": x[5]} for x in found_data]
             results += resulting_report(searched_data, result_tuples, found_dicts_l, locale=lc)
         return results
 
@@ -240,6 +252,46 @@ class IdsMatrix:
 
 
 class TextsStorage:
+    """"""
+
+    def __init__(self, db_path: str):
+        """"""
+        self.con = sqlite3.connect(db_path, check_same_thread=False)
+        self.con.execute("VACUUM")
+        self.cur = self.con.cursor()
+
+    def add(self, input_data: [()]):
+        """"""
+        self.cur.executemany('insert into queries values(?, ?, ?, ?, ?, ?)', input_data)
+        self.con.commit()
+
+    def delete(self, query_ids: []):
+        """dictionary must include all attributes"""
+        sql = "delete from queries where queryId in ({seq})".format(seq=','.join(['?'] * len(query_ids)))
+        self.cur.execute(sql, query_ids)
+        self.con.commit()
+
+    def search_answers(self, answer_ids: []):
+        """Возвращает текст вопроса с метаданными по входящему списку answer_ids"""
+        sql = "select * from queries where answerId in ({seq})".format(seq=','.join(['?'] * len(answer_ids)))
+        self.cur.execute(sql, answer_ids)
+        return self.cur.fetchall()
+
+    def search(self, query_ids: []):
+        """Возвращает текст вопроса с метаданными по входящему списку query_ids"""
+        sql = "select * from queries where queryId in ({seq})".format(seq=','.join(['?'] * len(query_ids)))
+        self.cur.execute(sql, query_ids)
+        return self.cur.fetchall()
+
+    def delete_all(self):
+        """"""
+        self.cur.execute("delete from queries")
+        self.con.commit()
+        # self.con.close()
+
+
+'''
+class TextsStorage:
     """["queryId", "answerId", "moduleId", "cluster", "pubIds"]"""
 
     def __init__(self, columns: [str]):
@@ -257,4 +309,4 @@ class TextsStorage:
 
     def search(self, item_ids: [], by_column: str):
         """Возвращает текст вопроса с метаданными по входящему списку query_ids"""
-        return self.data[self.data[by_column].isin(item_ids)]
+        return self.data[self.data[by_column].isin(item_ids)]'''
