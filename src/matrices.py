@@ -24,9 +24,10 @@ class IdsMatrix:
             self.ids, vectors = zip(*ids_vectors)
             self.matrix = vstack(vectors)
         else:
+            self.ids = []
             self.matrix = None
 
-    def add(self, ids_vectors: list[tuple[str, csc_matrix]]) -> None:
+    def add(self, ids_vectors: list[IdVector]) -> None:
         """tuples must be like (text_id, text_vector)"""
         ids, vectors = zip(*ids_vectors)
         self.ids += ids
@@ -34,32 +35,6 @@ class IdsMatrix:
             self.matrix = hstack(vectors).T
         else:
             self.matrix = vstack((self.matrix, hstack(vectors).T))
-
-    # def update(self, ids_vectors: [()]) -> None:
-    #     """tuples must be like (text_id, text_vector)"""
-    #     self.delete([i for i, v in ids_vectors])
-    #     self.add(ids_vectors)
-
-    # def search(self, ids_vectors: [()], score: float):
-    #     """tuples must be like (query_id, query_vector)"""
-    #     searched_ids, vectors = zip(*ids_vectors)
-    #     searched_matrix = hstack(vectors).T
-    #
-    #     if self.matrix is None:
-    #         return []
-    #
-    #     try:
-    #         matrix_scores = cosine_similarity(searched_matrix, self.matrix, dense_output=False)
-    #         ResultItem = namedtuple("ResultItem", "SearchedTextId, FoundTextId, Score")
-    #         search_results = [
-    #             [ResultItem(q_id, self.ids[i], sc) for i, sc in zip(scores.indices, scores.data) if sc >= score]
-    #             for scores, q_id in zip(matrix_scores, searched_ids)
-    #         ]
-    #         logger.info("Searching successfully completed")
-    #         return [x for x in chain(*search_results) if x]
-    #     except Exception as e:
-    #         logger.error("Failed queries search in MainSearcher.search: " + str(e))
-    #         return []
 
 
 class MatricesList:
@@ -98,11 +73,6 @@ class MatricesList:
         except Exception as e:
             logger.error("Failed queries search in MainSearcher.search: ", str(e))
             return []
-
-    # def delete_all(self) -> None:
-    #     """"""
-    #     self.ids_matrix_list.clear()
-    #     self.ids_matrix_list = [IdsMatrix()]
 
     def add(self, ids_vectors: list[IdVector]) -> None:
         """"""

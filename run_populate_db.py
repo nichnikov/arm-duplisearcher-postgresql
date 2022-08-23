@@ -1,4 +1,3 @@
-# TODO: Population script?
 import json
 import os
 import time

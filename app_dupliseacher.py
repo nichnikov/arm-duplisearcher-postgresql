@@ -3,7 +3,7 @@ import logging
 import uvicorn
 from fastapi import FastAPI
 
-from src import Worker, FastAnswer
+from src import Worker, RequestData
 from src.utils import data_prepare
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ worker = Worker()
 
 
 @app.post("/api")
-def handle_collection(data: FastAnswer):
+def handle_collection(data: RequestData):
     """Service searches for duplicates, adds, deletes data in collection."""
     queries = data_prepare(data.data)
     match data.operation:

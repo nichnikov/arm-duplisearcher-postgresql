@@ -6,14 +6,14 @@ from config import SHARD_SIZE, VOCABULARY_SIZE, DB_PATH
 from src.matrices import MatricesList
 from src.texts_processing import TextsVectorsBoW, TextsTokenizer
 from src.texts_storage import TextsStorage
-from src.types import Data, DataT, IdVector
+from src.types import Data, DataTransposed, IdVector
 
 logger = logging.getLogger(__name__)
 
 
 def resulting_report(searched_data, result_tuples, found_data_l: list[Data], locale: str):
     """"""
-
+    # TODO: refactor
     def grouping(similarity_items, searched_queries, searched_answers_moduls, locale: str):
         """"""
         return [
@@ -99,8 +99,8 @@ class Worker:
         return self.matrix_list.quantity
 
     @staticmethod
-    def transpose(data: list[Data]) -> DataT:
-        transposed = DataT(*zip(*data))
+    def transpose(data: list[Data]) -> DataTransposed:
+        transposed = DataTransposed(*zip(*data))
         return transposed
 
     def vectors_maker(self, data: list[Data]) -> list[IdVector]:

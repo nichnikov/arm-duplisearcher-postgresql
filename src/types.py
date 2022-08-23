@@ -18,8 +18,7 @@ class Data(NamedTuple):
     pubIds: str
 
 
-# TODO: Proper naming
-class DataT(NamedTuple):
+class DataTransposed(NamedTuple):
     locales: tuple[str]
     moduleIds: tuple[int]
     queryIds: tuple[str]
@@ -28,7 +27,7 @@ class DataT(NamedTuple):
     pubIds: tuple[str]
 
 
-class FastAnswerData(BaseModel):
+class FastAnswer(BaseModel):
     id: int
     locale: Literal["ru", "ua", "kz", "uz"]
     moduleId: int
@@ -36,7 +35,7 @@ class FastAnswerData(BaseModel):
     pubIds: list[int | None]
 
 
-class FastAnswer(BaseModel):
+class RequestData(BaseModel):
     score: float | None = 0.99
-    data: list[FastAnswerData] = []
+    data: list[FastAnswer] = []
     operation: Literal["add", "update", "delete", "delete_all", "search"]
