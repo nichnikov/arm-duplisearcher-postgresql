@@ -1,0 +1,17 @@
+[flake8]
+ignore =
+    W503,
+    I,
+    E203,
+    PD011,
+    PD005
+exclude =
+    __pycache__
+    .pytest_cache
+    .tox
+    .pyenv-*
+    venv
+    tests
+    data
+max-line-length = 120
+line_length = 120

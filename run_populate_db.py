@@ -1,21 +1,17 @@
+import json
 import os
 import time
+
 import requests
-import json
 
-
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
+from src.utils import chunks
 
 # PATH = r"/home/an/Data/Yandex.Disk/data/fast_answers" # Home
-PATH = r"/home/alexey/Data/Yandex.Disk/data/fast_answers" # Office
+PATH = r"/home/alexey/Data/Yandex.Disk/data/fast_answers"  # Office
 # file_name = "data_all_with_locale.json"
 # file_name = "qa-full-ru.json"
 # file_name = "qa-full-ua.json"
-file_name = "qa.json"
+file_name = "request_data.json"
 
 with open(os.path.join(PATH, file_name), "r") as f:
     initial_data_json = json.load(f)
@@ -34,19 +30,16 @@ initial_data = initial_data_json["data"][:1000]
 # print(initial_data[0])
 # sending_data = {"data": [["292b4373-61c0-440b-b4d7-9f4c9b27a5ba", 613, 85, "приказ об отзыве из отпуска во время болезни", [10, 12, 16, 58, 189, 191, 222]]], "operation": "search"}
 
-#SERVISE_URL = "http://srv01.lingua.dev.msk2.sl.amedia.tech:8000/api/" # prod
-#SERVISE_URL = "http://srv01.lingua.dev.msk2.sl.amedia.tech:7000/api/" # dev
-#SERVISE_URL = "http://srv01.lingua.dev.msk2.sl.amedia.tech:8080/api/" # prod
-#SERVISE_URL = "http://0.0.0.0:7000/api/"
-#SERVISE_URL = "http://127.0.0.1:5000/api/"
+# SERVISE_URL = "http://srv01.lingua.dev.msk2.sl.amedia.tech:8000/api/" # prod
+# SERVISE_URL = "http://srv01.lingua.dev.msk2.sl.amedia.tech:7000/api/" # dev
+# SERVISE_URL = "http://srv01.lingua.dev.msk2.sl.amedia.tech:8080/api/" # prod
 SERVISE_URL = "http://0.0.0.0:8080/api/"
 
-#do = "add"
-#do = "search_a_lot"
-#do = "search_one"
-#do = "update"
+# do = "add"
+# do = "search_one"
+# do = "update"
 # do = "delete"
-#do = "delete_all"
+# do = "delete_all"
 
 for do in ["delete_all"]:
     if do == "add":
@@ -63,7 +56,7 @@ for do in ["delete_all"]:
             # print(r.content)
 
     if do == "delete":
-        del_data = initial_data[10:20] #[initial_data[1]]
+        del_data = initial_data[10:20]  # [initial_data[1]]
         # print(del_data)
         t = time.time()
         sending_data = {"data": del_data, "score": 0.99, "operation": "delete"}
@@ -118,7 +111,7 @@ for do in ["delete_all"]:
             print("clusters quantity:", len(clusters), "searching time:", delta)
             k += 1
 
-        print("time evolution:", secs, secs/k)
+        print("time evolution:", secs, secs / k)
 
     # 16:30:41,268 dispatcher.utils INFO [128897, 128897, 128891]
     elif do == "delete_all":
