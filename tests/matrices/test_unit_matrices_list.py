@@ -2,28 +2,36 @@ import pytest
 
 from config import SHARD_SIZE
 from src.matrices import MatricesList
+from src.types import FastAnswer
+from src.utils import data_prepare, transpose
 
 pytestmark = pytest.mark.unit
 
 
-def test_add(ids_vectors):
-    matrices_list = MatricesList(max_size=SHARD_SIZE)
-    matrices_list.add(ids_vectors=ids_vectors)
-    assert matrices_list.quantity == len(ids_vectors)
+@pytest.fixture()
+def prepared_data(request_data):
+    data = list(map(FastAnswer.parse_obj, request_data))
+    return data_prepare(data=data)
 
 
-@pytest.mark.skip()
-def test_delete(ids_vectors):
-    ids, _ = zip(*ids_vectors)
+def test_add(prepared_data):
     matrices_list = MatricesList(max_size=SHARD_SIZE)
-    matrices_list.add(ids_vectors=ids_vectors)
-    matrices_list.delete(ids=ids)
+    matrices_list.add(data=prepared_data)
+    assert matrices_list.quantity == len(prepared_data)
+
+
+def test_delete(prepared_data):
+    prepared_data_t = transpose(prepared_data)
+    matrices_list = MatricesList(max_size=SHARD_SIZE)
+    matrices_list.add(data=prepared_data)
+    matrices_list.delete(ids=prepared_data_t.queryIds)
     assert matrices_list.quantity == 0
+    assert len(matrices_list.ids_matrix_list[0].ids) == 0
+    assert matrices_list.ids_matrix_list[0].matrix is None
 
 
-def test_search(ids_vectors):
+def test_search(prepared_data):
     matrices_list = MatricesList(max_size=SHARD_SIZE)
-    matrices_list.add(ids_vectors=ids_vectors)
-    result = matrices_list.search(searched_vectors=ids_vectors, min_score=0.99)
-    assert result is not None
-    assert len(result) == len(ids_vectors)
+    matrices_list.add(data=prepared_data)
+    results = matrices_list.search(data=prepared_data, min_score=0.99)
+    assert len(results) > 0
