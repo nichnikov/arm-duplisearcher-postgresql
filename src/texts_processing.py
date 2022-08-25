@@ -16,14 +16,14 @@ class TextsTokenizer:
     def __init__(self):
         self.m = Mystem()
 
-    def texts2tokens(self, texts: tuple[str]) -> list[list[str]]:
+    def texts2tokens(self, texts: list[str]) -> list[list[str]]:
         """Lemmatization for texts in list. It returns list with lemmatized texts."""
         text_ = "\n".join(texts)
         text_ = re.sub(r"[^\w\n\s]", " ", text_)
         lm_texts = "".join(self.m.lemmatize(text_))
         return [lm_q.split() for lm_q in lm_texts.split("\n")][:-1]
 
-    def __call__(self, texts: tuple[str]) -> list[list[str]]:
+    def __call__(self, texts: list[str]) -> list[list[str]]:
         return self.texts2tokens(texts)
 
 
@@ -37,6 +37,7 @@ class TextsVectorsBoW:
     def tokens2corpus(self, tokens: list[list]) -> list[list]:
         """queries2vectors new_queries tuple: (text, query_id)
         returns new vectors with query ids for sending in searcher"""
+        # dynamic max_dict_size?
 
         if self.dictionary is None:
             gensim_dict_ = Dictionary(tokens)

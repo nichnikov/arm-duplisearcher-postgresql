@@ -1,13 +1,12 @@
 import pathlib
 from uuid import uuid4
 
-from src.types import Data
+from src.types import Data, DataTransposed, FastAnswer
 
 
-def data_prepare(json_data: list) -> list[Data]:
-    """Преобразует входящие словари в список кортежей"""
+def data_prepare(data: list[FastAnswer]) -> list[Data]:
     queries_in = []
-    for item in json_data:
+    for item in data:
         queries_in += [
             Data(
                 locale=item.locale,
@@ -15,11 +14,16 @@ def data_prepare(json_data: list) -> list[Data]:
                 queryId=str(uuid4()),
                 answerId=item.id,
                 cluster=cluster,
-                pubIds=str(item.pubIds),
+                pubIds=item.pubIds,
             )
             for cluster in item.clusters
         ]
     return queries_in
+
+
+def transpose(data: list[Data]) -> DataTransposed:
+    transposed = DataTransposed(*zip(*data))
+    return transposed
 
 
 def chunks(lst, n):

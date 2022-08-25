@@ -2,11 +2,13 @@ import logging
 from itertools import chain
 from multiprocessing import Pool
 
-from scipy.sparse import hstack, vstack, csc_matrix
+from scipy.sparse import hstack, vstack
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.types import IdVector
-from src.utils import chunks
+from config import VOCABULARY_SIZE
+from src.texts_processing import TextsVectorsBoW, TextsTokenizer
+from src.types import IdVector, Data
+from src.utils import chunks, transpose
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +43,10 @@ class MatricesList:
     """"""
 
     def __init__(self, max_size: int):
-        self.ids_matrix_list = [IdsMatrix()]
         self.max_size = max_size
+        self.tokenizer = TextsTokenizer()
+        self.vectorizer = TextsVectorsBoW(max_dict_size=VOCABULARY_SIZE)
+        self.ids_matrix_list = [IdsMatrix()]
 
     @property
     def quantity(self) -> int:
@@ -74,8 +78,16 @@ class MatricesList:
             logger.error("Failed queries search in MainSearcher.search: ", str(e))
             return []
 
-    def add(self, ids_vectors: list[IdVector]) -> None:
+    def vectors_maker(self, data: list[Data]) -> list[IdVector]:
         """"""
+        data_t = transpose(data)
+        tokens = self.tokenizer(texts=data_t.clusters)
+        vectors = self.vectorizer(tokens=tokens)
+        return [IdVector(id=_id, vector=_vec) for _id, _vec in zip(data_t.queryIds, vectors)]
+
+    def add(self, data: list[Data]) -> None:
+        """"""
+        ids_vectors = self.vectors_maker(data)
         for chunk in chunks(ids_vectors, self.max_size):
             is_matrices_full = True
             for im in self.ids_matrix_list:
@@ -92,10 +104,11 @@ class MatricesList:
         """"""
         for ids_matrix in self.ids_matrix_list:
             if set(ids) & set(ids_matrix.ids):
-                ids_matrix.delete(ids)
+                ids_matrix.delete(ids=ids)
 
-    def search(self, searched_vectors: list[IdVector], min_score: float) -> list[tuple]:
-        vectors_ids, vectors = zip(*searched_vectors)
+    def search(self, data: list[Data], min_score: float) -> list[tuple]:
+        ids_vectors = self.vectors_maker(data)
+        vectors_ids, vectors = zip(*ids_vectors)
         searched_data = [
             {
                 "vectors_ids": vectors_ids,

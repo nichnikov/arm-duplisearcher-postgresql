@@ -2,18 +2,34 @@ import logging
 from collections import namedtuple
 from itertools import groupby
 
-from config import SHARD_SIZE, VOCABULARY_SIZE, DB_PATH
+from config import SHARD_SIZE, DB_PATH
 from src.matrices import MatricesList
-from src.texts_processing import TextsVectorsBoW, TextsTokenizer
 from src.texts_storage import TextsStorage
-from src.types import Data, DataTransposed, IdVector
+from src.types import Data
+from src.utils import transpose
 
 logger = logging.getLogger(__name__)
 
 
+ResultItem = namedtuple(
+    "ResultItem",
+    "SearchedAnswerId, "
+    "SearchedText, "
+    "SearchedQueryId, "
+    "SearchedModuleId, "
+    "SearchedPubIds, "
+    "FoundAnswerId, "
+    "FoundText, "
+    "FoundQueryId, "
+    "FoundModuleId, "
+    "FoundPubIds",
+)
+
+
+# TODO: Refactor
 def resulting_report(searched_data, result_tuples, found_data_l: list[Data], locale: str):
     """"""
-    # TODO: refactor
+
     def grouping(similarity_items, searched_queries, searched_answers_moduls, locale: str):
         """"""
         return [
@@ -41,20 +57,6 @@ def resulting_report(searched_data, result_tuples, found_data_l: list[Data], loc
                 sorted(similarity_items, key=lambda a: a.SearchedAnswerId), lambda b: b.SearchedAnswerId
             )
         ]
-
-    ResultItem = namedtuple(
-        "ResultItem",
-        "SearchedAnswerId, "
-        "SearchedText, "
-        "SearchedQueryId, "
-        "SearchedModuleId, "
-        "SearchedPubIds, "
-        "FoundAnswerId, "
-        "FoundText, "
-        "FoundQueryId, "
-        "FoundModuleId, "
-        "FoundPubIds",
-    )
 
     searched_dict = {
         q_i: {"answerId": a_i, "moduleId": m_i, "cluster": cl, "pubIds": p_i}
@@ -88,38 +90,24 @@ class Worker:
     """Объект для оперирования MatricesList и TextsStorage"""
 
     def __init__(self):
-        # TODO: init from db
         self.text_storage = TextsStorage(db_path=DB_PATH)
         self.matrix_list = MatricesList(max_size=SHARD_SIZE)
-        self.tokenizer = TextsTokenizer()
-        self.vectorizer = TextsVectorsBoW(max_dict_size=VOCABULARY_SIZE)
+        if len(existing_data := self.text_storage.get_all()) > 0:
+            self.matrix_list.add(data=existing_data)
 
     @property
     def quantity(self) -> int:
         return self.matrix_list.quantity
 
-    @staticmethod
-    def transpose(data: list[Data]) -> DataTransposed:
-        transposed = DataTransposed(*zip(*data))
-        return transposed
-
-    def vectors_maker(self, data: list[Data]) -> list[IdVector]:
-        """"""
-        data_t = self.transpose(data)
-        tokens = self.tokenizer(data_t.clusters)
-        vectors = self.vectorizer(tokens)
-        return [IdVector(id=_id, vector=_vec) for _id, _vec in zip(data_t.queryIds, vectors)]
-
     def add(self, data: list[Data]) -> None:
         """"""
-        ids_vectors = self.vectors_maker(data)
-        self.matrix_list.add(ids_vectors)
+        self.matrix_list.add(data)
         self.text_storage.add(data)
 
     def delete(self, data: list[Data]) -> None:
         """"""
-        data_t = self.transpose(data)
-        searched_data = self.text_storage.search_answers(ids=tuple(set(data_t.answerIds)))
+        data_t = transpose(data)
+        searched_data = self.text_storage.search_answers(ids=list(set(data_t.answerIds)))
         q_ids = [x[2] for x in searched_data]
         q_ids = list(set(q_ids))
         self.matrix_list.delete(q_ids)
@@ -131,7 +119,7 @@ class Worker:
         self.matrix_list = MatricesList(max_size=SHARD_SIZE)
 
     def update(self, data: list[Data]) -> None:
-        data_t = self.transpose(data)
+        data_t = transpose(data)
         searched_data = self.text_storage.search_answers(ids=data_t.answerIds)
         self.delete(searched_data)
         self.add(data)
@@ -142,10 +130,8 @@ class Worker:
         data_by_locale = {k: list(v) for k, v in it}
         results = []
         for lc in data_by_locale:
-            ids_vectors = self.vectors_maker(data_by_locale[lc])
-            result_tuples = self.matrix_list.search(ids_vectors, score)
+            result_tuples = self.matrix_list.search(data=data_by_locale[lc], min_score=score)
             searched_ids, found_ids, scores = zip(*result_tuples)
             found_data = self.text_storage.search_queries(ids=found_ids)
-            found_data_l = [Data(*x) for x in found_data]
-            results += resulting_report(data, result_tuples, found_data_l, locale=lc)
+            results += resulting_report(data, result_tuples, found_data, locale=lc)
         return results

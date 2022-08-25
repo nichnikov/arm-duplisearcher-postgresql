@@ -15,16 +15,16 @@ class Data(NamedTuple):
     queryId: str
     answerId: int
     cluster: str
-    pubIds: str
+    pubIds: list[int]
 
 
 class DataTransposed(NamedTuple):
-    locales: tuple[str]
-    moduleIds: tuple[int]
-    queryIds: tuple[str]
-    answerIds: tuple[int]
-    clusters: tuple[str]
-    pubIds: tuple[str]
+    locales: list[str]
+    moduleIds: list[int]
+    queryIds: list[str]
+    answerIds: list[int]
+    clusters: list[str]
+    pubIds: list[str]
 
 
 class FastAnswer(BaseModel):
