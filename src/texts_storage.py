@@ -1,53 +1,55 @@
-import ast
-import sqlite3
+from sqlalchemy import Column, Integer, String, ARRAY, MetaData
+from sqlalchemy.ext.declarative import declarative_base
 
-from src.types import Data
+from src.schemas import Data
+
+Base = declarative_base(metadata=MetaData())
 
 
-class TextsStorage:
-    def __init__(self, db_path: str):
-        self.con = sqlite3.connect(db_path, check_same_thread=False)
-        self.con.execute(
-            "create table if not exists "
-            "queries(locale text, moduleId integer, queryId text primary key, "
-            "answerId integer, cluster text, pubIds text)"
-        )
-        self.con.execute("VACUUM")
-        self.cur = self.con.cursor()
+class Query(Base):
+    __tablename__ = "queries"
 
-    def delete(self, query_ids: list[int]):
-        """dictionary must include all attributes"""
-        sql = f"delete from queries where queryId in ({','.join(['?'] * len(query_ids))})"
-        self.cur.execute(sql, query_ids)
-        self.con.commit()
+    locale = Column(String)
+    module_id = Column(Integer)
+    query_id = Column(String, primary_key=True)
+    answer_id = Column(Integer)
+    cluster = Column(String)
+    pub_ids = Column(ARRAY(Integer))
 
-    def delete_all(self):
-        """"""
-        self.cur.execute("delete from queries")
-        self.con.commit()
 
-    def add(self, input_data: list[Data]) -> None:
-        """"""
-        transformed_data = [Data(*x[:-1], str(x[-1])) for x in input_data]
-        self.cur.executemany("insert into queries values(?, ?, ?, ?, ?, ?)", transformed_data)
-        self.con.commit()
+class Storage:
+    def __init__(self, db):
+        self.db = db
+
+    @staticmethod
+    def row2dict(row: Base):
+        _dict = {}
+        for column in row.__table__.columns:
+            _dict[column.name] = str(getattr(row, column.name))
+
+        return _dict
+
+    def add(self, data: list[Data]) -> None:
+        queries = [Query(**item._asdict()) for item in data]
+        self.db.bulk_save_objects(queries)
+        self.db.commit()
 
     def search_answers(self, ids: list[int]) -> list[Data]:
-        """Возвращает текст вопроса с метаданными по входящему списку answer ids"""
-        sql = f"select * from queries where answerId in ({','.join(['?'] * len(ids))})"
-        self.cur.execute(sql, ids)
-        result = self.cur.fetchall()
-        found_data = [Data(*x[:-1], ast.literal_eval(x[-1])) for x in result]
-        return found_data
+        queries = self.db.query(Query).filter(Query.answer_id.in_(ids)).all()
+        return [Data(**self.row2dict(item)) for item in queries]
 
     def search_queries(self, ids: list[int]) -> list[Data]:
-        """Возвращает текст вопроса с метаданными по входящему списку query ids"""
-        sql = f"select * from queries where queryId in ({','.join(['?'] * len(ids))})"
-        self.cur.execute(sql, ids)
-        result = self.cur.fetchall()
-        found_data = [Data(*x[:-1], ast.literal_eval(x[-1])) for x in result]
-        return found_data
+        queries = self.db.query(Query).filter(Query.query_id.in_(ids)).all()
+        return [Data(**self.row2dict(item)) for item in queries]
 
-    def get_all(self):
-        self.cur.execute(f"select * from queries")
-        return self.cur.fetchall()
+    def delete_queries(self, ids: list[int]) -> None:
+        self.db.query(Query).filter(Query.query_id.in_(ids)).delete()
+        self.db.commit()
+
+    def delete_all(self) -> None:
+        self.db.query(Query).delete()
+        self.db.commit()
+
+    def get_all(self) -> list[Data]:
+        queries = self.db.query(Query).all()
+        return [Data(**self.row2dict(item)) for item in queries]
