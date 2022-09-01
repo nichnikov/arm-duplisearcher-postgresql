@@ -37,7 +37,6 @@ class TextsVectorsBoW:
     def tokens2corpus(self, tokens: list[list]) -> list[list]:
         """queries2vectors new_queries tuple: (text, query_id)
         returns new vectors with query ids for sending in searcher"""
-        # dynamic max_dict_size?
 
         if self.dictionary is None:
             gensim_dict_ = Dictionary(tokens)

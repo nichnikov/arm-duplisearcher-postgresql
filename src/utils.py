@@ -1,7 +1,7 @@
 import pathlib
 from uuid import uuid4
 
-from src.types import Data, DataTransposed, FastAnswer
+from src.schemas import Data, DataTransposed, FastAnswer
 
 
 def data_prepare(data: list[FastAnswer]) -> list[Data]:
@@ -10,11 +10,11 @@ def data_prepare(data: list[FastAnswer]) -> list[Data]:
         queries_in += [
             Data(
                 locale=item.locale,
-                moduleId=item.moduleId,
-                queryId=str(uuid4()),
-                answerId=item.id,
+                module_id=item.module_id,
+                query_id=str(uuid4()),
+                answer_id=item.answer_id,
                 cluster=cluster,
-                pubIds=item.pubIds,
+                pub_ids=item.pub_ids,
             )
             for cluster in item.clusters
         ]
