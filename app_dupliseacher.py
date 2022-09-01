@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from config import DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+from config import DB_URL
 from src import Worker, Storage, RequestData
 from src.utils import data_prepare
 
@@ -16,8 +16,7 @@ app = FastAPI(title="Duplicate searcher")
 
 
 def get_db():
-    connection = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    engine = create_engine(connection, echo=True)
+    engine = create_engine(DB_URL, echo=True)
     with Session(engine) as session:
         yield session
 
