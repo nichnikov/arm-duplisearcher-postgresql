@@ -6,8 +6,8 @@ from scipy.sparse import hstack, vstack
 from sklearn.metrics.pairwise import cosine_similarity
 
 from config import VOCABULARY_SIZE
+from src.schemas import IdVector, Data
 from src.texts_processing import TextsVectorsBoW, TextsTokenizer
-from src.types import IdVector, Data
 from src.utils import chunks, transpose
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ class MatricesList:
         data_t = transpose(data)
         tokens = self.tokenizer(texts=data_t.clusters)
         vectors = self.vectorizer(tokens=tokens)
-        return [IdVector(id=_id, vector=_vec) for _id, _vec in zip(data_t.queryIds, vectors)]
+        return [IdVector(id=_id, vector=_vec) for _id, _vec in zip(data_t.query_ids, vectors)]
 
     def add(self, data: list[Data]) -> None:
         """"""

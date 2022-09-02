@@ -1,20 +1,33 @@
 import logging
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
-from src import Worker, RequestData
+from config import DB_URL
+from src import Worker, Storage, RequestData
 from src.utils import data_prepare
 
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI(title="App duplisearcher")
-worker = Worker()
+app = FastAPI(title="Duplicate searcher")
+
+
+def get_db():
+    engine = create_engine(DB_URL, echo=True)
+    with Session(engine) as session:
+        yield session
+
+
+def get_worker(db=Depends(get_db)) -> Worker:
+    storage = Storage(db=db)
+    return Worker(storage=storage)
 
 
 @app.post("/api")
-def handle_collection(data: RequestData):
+def handle_collection(data: RequestData, worker: Worker = Depends(get_worker)):
     """Service searches for duplicates, adds, deletes data in collection."""
     queries = data_prepare(data.data)
     match data.operation:
