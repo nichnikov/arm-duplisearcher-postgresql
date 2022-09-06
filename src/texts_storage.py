@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, ARRAY, MetaData
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 
 from src.schemas import Data
 
@@ -18,38 +19,38 @@ class Query(Base):
 
 
 class Storage:
-    def __init__(self, db):
-        self.db = db
+    def __init__(self, session: Session):
+        self.session = session
 
     @staticmethod
-    def row2dict(row: Base):
+    def row2dict(row: Base) -> dict:
         _dict = {}
         for column in row.__table__.columns:
-            _dict[column.name] = str(getattr(row, column.name))
+            _dict[column.name] = getattr(row, column.name)
 
         return _dict
 
     def add(self, data: list[Data]) -> None:
         queries = [Query(**item._asdict()) for item in data]
-        self.db.bulk_save_objects(queries)
-        self.db.commit()
+        self.session.bulk_save_objects(queries)
+        self.session.commit()
 
-    def search_answers(self, ids: list[int]) -> list[Data]:
-        queries = self.db.query(Query).filter(Query.answer_id.in_(ids)).all()
+    def search_by_answers(self, ids: list[int]) -> list[Data]:
+        queries = self.session.query(Query).filter(Query.answer_id.in_(ids)).all()
         return [Data(**self.row2dict(item)) for item in queries]
 
-    def search_queries(self, ids: list[int]) -> list[Data]:
-        queries = self.db.query(Query).filter(Query.query_id.in_(ids)).all()
+    def search_by_queries(self, ids: list[int]) -> list[Data]:
+        queries = self.session.query(Query).filter(Query.query_id.in_(ids)).all()
         return [Data(**self.row2dict(item)) for item in queries]
 
-    def delete_queries(self, ids: list[int]) -> None:
-        self.db.query(Query).filter(Query.query_id.in_(ids)).delete()
-        self.db.commit()
+    def delete_by_queries(self, ids: list[str]) -> None:
+        self.session.query(Query).filter(Query.query_id.in_(ids)).delete()
+        self.session.commit()
 
     def delete_all(self) -> None:
-        self.db.query(Query).delete()
-        self.db.commit()
+        self.session.query(Query).delete()
+        self.session.commit()
 
     def get_all(self) -> list[Data]:
-        queries = self.db.query(Query).all()
+        queries = self.session.query(Query).all()
         return [Data(**self.row2dict(item)) for item in queries]
