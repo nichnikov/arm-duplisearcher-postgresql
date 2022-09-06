@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from config import DB_URL
+from config import QUERIES_DB
 from src import Worker, Storage, RequestData
 from src.utils import data_prepare
 
@@ -16,18 +16,18 @@ app = FastAPI(title="Duplicate searcher")
 
 
 def get_db():
-    engine = create_engine(DB_URL, echo=True)
+    engine = create_engine(QUERIES_DB, echo=True)
     with Session(engine) as session:
         yield session
 
 
-def get_worker(db=Depends(get_db)) -> Worker:
-    storage = Storage(db=db)
+def get_worker(db=Depends(get_db)) -> Worker:  # noqa
+    storage = Storage(session=db)
     return Worker(storage=storage)
 
 
 @app.post("/api")
-def handle_collection(data: RequestData, worker: Worker = Depends(get_worker)):
+def handle_collection(data: RequestData, worker: Worker = Depends(get_worker)):  # noqa
     """Service searches for duplicates, adds, deletes data in collection."""
     queries = data_prepare(data.data)
     match data.operation:

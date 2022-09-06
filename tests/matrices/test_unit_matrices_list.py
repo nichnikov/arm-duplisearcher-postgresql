@@ -2,16 +2,9 @@ import pytest
 
 from config import SHARD_SIZE
 from src.matrices import MatricesList
-from src.schemas import FastAnswer
-from src.utils import data_prepare, transpose
+from src.utils import transpose
 
 pytestmark = pytest.mark.unit
-
-
-@pytest.fixture()
-def prepared_data(request_data):
-    data = list(map(FastAnswer.parse_obj, request_data))
-    return data_prepare(data=data)
 
 
 def test_add(prepared_data):
