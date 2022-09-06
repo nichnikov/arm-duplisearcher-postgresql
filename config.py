@@ -8,12 +8,8 @@ logging.config.fileConfig(fname=os.path.join(ROOT_DIR, "logger.ini"), disable_ex
 
 SHARD_SIZE = 45000
 VOCABULARY_SIZE = 35000
+DEV_URL = "http://srv01.lingua.dev.msk2.sl.amedia.tech:8000/api"
 
 dotenv.load_dotenv()
 
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+QUERIES_DB = os.getenv("QUERIES_DB")
